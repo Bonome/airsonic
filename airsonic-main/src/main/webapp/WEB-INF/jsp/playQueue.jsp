@@ -583,7 +583,16 @@
             icon: "coverArt.view?id=" + song.id + "&size=110"
         });
         n.onshow = function() {
-            setTimeout(function() {n.close()}, 5000);
+        // first idea save the notification time to display in player, except
+        // even with the duration in timeout, we can meet issue when the user skip or stop or pause the track
+        // an other approch, can be close the notif on every event 
+        // and add play, pause, next, prev in it
+        // need more time to do it
+            console.log(song);
+            console.log(song.durationAsString);
+            console.log(song.duration);
+            console.log(${model.player.id});
+            setTimeout(function() {n.close()}, song.duration*1000);
         }
     }
 

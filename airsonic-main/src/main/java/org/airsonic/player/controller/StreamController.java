@@ -29,6 +29,7 @@ import org.airsonic.player.service.sonos.SonosHelper;
 import org.airsonic.player.util.HttpRange;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
+import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +85,8 @@ public class StreamController  {
 
     @RequestMapping(method = RequestMethod.GET)
     public void handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-
+        
+        boolean close = true;
         TransferStatus status = null;
         PlayQueueInputStream in = null;
         Player player = playerService.getPlayer(request, response, false, true);
@@ -248,13 +250,20 @@ public class StreamController  {
                     }
                 }
             }
-
+            
+        } catch (ClientAbortException err) {
+            LOG.info("org.apache.catalina.connector.ClientAbortException: java.net.SocketTimeoutException");
+            close = false;
+            return;
         } finally {
             if (status != null) {
                 securityService.updateUserByteCounts(user, status.getBytesTransfered(), 0L, 0L);
                 statusService.removeStreamStatus(status);
             }
-            IOUtils.closeQuietly(in);
+            if(close) {
+                IOUtils.closeQuietly(in);
+            }
+            close = true;
         }
         return;
     }
