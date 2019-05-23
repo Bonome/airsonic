@@ -29,7 +29,6 @@ import org.airsonic.player.service.sonos.SonosHelper;
 import org.airsonic.player.util.HttpRange;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
-import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
