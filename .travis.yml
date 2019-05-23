@@ -1,11 +1,13 @@
 language: java
-sudo: required
-jdk:
-  - oraclejdk8
 cache:
   directories:
     - $HOME/.m2
-install:
-  - sudo apt-get -qq update
 script:
-  - mvn package install
+  - mvn verify -B -P integration-test
+
+matrix:
+  include:
+  - jdk: oraclejdk8
+  - jdk: oraclejdk9
+  - jdk: oraclejdk11
+  

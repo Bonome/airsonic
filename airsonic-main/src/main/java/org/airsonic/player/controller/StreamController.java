@@ -109,7 +109,7 @@ public class StreamController  {
                 playQueue.addFiles(false, playlistService.getFilesInPlaylist(playlistId));
                 player.setPlayQueue(playQueue);
                 Util.setContentLength(response, playQueue.length());
-                LOG.info("Incoming Podcast request for playlist " + playlistId);
+                LOG.info("{}: Incoming Podcast request for playlist {}", request.getRemoteAddr(), playlistId);
             }
 
             response.setHeader("Access-Control-Allow-Origin", "*");
@@ -153,7 +153,7 @@ public class StreamController  {
                 playQueue.addFiles(true, file);
                 player.setPlayQueue(playQueue);
 
-                if (!file.isVideo()) {
+                if (settingsService.isEnableSeek() && !file.isVideo()) {
                     response.setIntHeader("ETag", file.getId());
                     response.setHeader("Accept-Ranges", "bytes");
                 }
@@ -165,8 +165,8 @@ public class StreamController  {
                 boolean isHls = ServletRequestUtils.getBooleanParameter(request, "hls", false);
 
                 range = getRange(request, file);
-                if (range != null && !file.isVideo()) {
-                    LOG.info("Got HTTP range: " + range);
+                if (settingsService.isEnableSeek() && range != null && !file.isVideo()) {
+                    LOG.info("{}: Got HTTP range: {}", request.getRemoteAddr(), range);
                     response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
                     Util.setContentLength(response, range.isClosed() ? range.size() : fileLength - range.getFirstBytePos());
                     long lastBytePos = range.getLastBytePos() != null ? range.getLastBytePos() : fileLength - 1;
@@ -250,11 +250,23 @@ public class StreamController  {
                     }
                 }
             }
-            
-        } catch (ClientAbortException err) {
-            LOG.info("org.apache.catalina.connector.ClientAbortException: java.net.SocketTimeoutException");
-            close = false;
-            return;
+        } catch (IOException e) {
+
+            // This happens often and outside of the control of the server, so
+            // we catch Tomcat/Jetty "connection aborted by client" exceptions
+            // and display a short error message.
+            boolean shouldCatch = false;
+            shouldCatch |= Util.isInstanceOfClassName(e, "org.apache.catalina.connector.ClientAbortException");
+            shouldCatch |= Util.isInstanceOfClassName(e, "org.eclipse.jetty.io.EofException");
+            if (shouldCatch) {
+                LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(), Util.getAnonymizedURLForRequest(request), e.getCause().toString());
+                close = false;
+                return;
+            }
+
+            // Rethrow the exception in all other cases
+            throw e;
+
         } finally {
             if (status != null) {
                 securityService.updateUserByteCounts(user, status.getBytesTransfered(), 0L, 0L);
@@ -305,7 +317,7 @@ public class StreamController  {
             return file.getFileSize();
         }
 
-        return duration * maxBitRate * 1000L / 8L;
+        return duration * (long)maxBitRate * 1000L / 8L;
     }
 
     private HttpRange getRange(HttpServletRequest request, MediaFile file) {
@@ -432,5 +444,4 @@ public class StreamController  {
         out.write(buf);
         out.flush();
     }
-
 }

@@ -347,10 +347,6 @@ public class MediaFileService {
     /**
      * Returns random songs matching search criteria.
      *
-     * @param criteria Random search criteria.
-     * @param count    Max number of songs to return.
-     * @return Random songs
-     * @see SearchService.getRandomSongs
      */
     public List<MediaFile> getRandomSongs(RandomSearchCriteria criteria, String username) {
         return mediaFileDao.getRandomSongs(criteria, username);
@@ -503,6 +499,7 @@ public class MediaFileService {
                 mediaFile.setVariableBitRate(metaData.getVariableBitRate());
                 mediaFile.setHeight(metaData.getHeight());
                 mediaFile.setWidth(metaData.getWidth());
+                mediaFile.setMusicBrainzReleaseId(metaData.getMusicBrainzReleaseId());
             }
             String format = StringUtils.trimToNull(StringUtils.lowerCase(FilenameUtils.getExtension(mediaFile.getPath())));
             mediaFile.setFormat(format);

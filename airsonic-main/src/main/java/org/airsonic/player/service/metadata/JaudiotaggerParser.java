@@ -92,6 +92,7 @@ public class JaudiotaggerParser extends MetaDataParser {
                 metaData.setGenre(mapGenre(getTagField(tag, FieldKey.GENRE)));
                 metaData.setDiscNumber(parseInteger(getTagField(tag, FieldKey.DISC_NO)));
                 metaData.setTrackNumber(parseTrackNumber(getTagField(tag, FieldKey.TRACK)));
+                metaData.setMusicBrainzReleaseId(getTagField(tag, FieldKey.MUSICBRAINZ_RELEASEID));
 
                 String songArtist = getTagField(tag, FieldKey.ARTIST);
                 String albumArtist = getTagField(tag, FieldKey.ALBUM_ARTIST);
@@ -160,7 +161,7 @@ public class JaudiotaggerParser extends MetaDataParser {
         Integer result = null;
 
         try {
-            result = new Integer(trackNumber);
+            result = Integer.valueOf(trackNumber);
         } catch (NumberFormatException x) {
             Matcher matcher = TRACK_NUMBER_PATTERN.matcher(trackNumber);
             if (matcher.matches()) {
@@ -186,7 +187,7 @@ public class JaudiotaggerParser extends MetaDataParser {
         Integer result = null;
 
         try {
-            result = new Integer(year);
+            result = Integer.valueOf(year);
         } catch (NumberFormatException x) {
             Matcher matcher = YEAR_NUMBER_PATTERN.matcher(year);
             if (matcher.matches()) {

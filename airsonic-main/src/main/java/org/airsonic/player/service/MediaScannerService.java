@@ -156,6 +156,7 @@ public class MediaScannerService {
             public void run() {
                 doScanLibrary();
                 playlistService.importPlaylists();
+                mediaFileDao.checkpoint();
             }
         };
 
@@ -297,6 +298,9 @@ public class MediaScannerService {
             album.setName(file.getAlbumName());
             album.setArtist(artist);
             album.setCreated(file.getChanged());
+        }
+        if (file.getMusicBrainzReleaseId() != null) {
+            album.setMusicBrainzReleaseId(file.getMusicBrainzReleaseId());
         }
         if (file.getYear() != null) {
             album.setYear(file.getYear());

@@ -30,6 +30,7 @@ import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.PlayQueue;
+import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.*;
 import org.airsonic.player.util.Pair;
 import org.airsonic.player.util.StringUtil;
@@ -135,6 +136,8 @@ public class SubsonicRESTController {
     private PlayQueueDao playQueueDao;
     @Autowired
     private MediaScannerService mediaScannerService;
+    @Autowired
+    private LocaleResolver localeResolver;
 
     private final Map<BookmarkKey, org.airsonic.player.domain.Bookmark> bookmarkCache = new ConcurrentHashMap<BookmarkKey, org.airsonic.player.domain.Bookmark>();
     private final JAXBWriter jaxbWriter = new JAXBWriter();
@@ -431,7 +434,7 @@ public class SubsonicRESTController {
         for (MediaFile similarArtist : similarArtists) {
             result.getSimilarArtist().add(createJaxbArtist(similarArtist, username));
         }
-        ArtistBio artistBio = lastFmService.getArtistBio(mediaFile, getUserLocale(request));
+        ArtistBio artistBio = lastFmService.getArtistBio(mediaFile, localeResolver.resolveLocale(request));
         if (artistBio != null) {
             result.setBiography(artistBio.getBiography());
             result.setMusicBrainzId(artistBio.getMusicBrainzId());
@@ -468,7 +471,7 @@ public class SubsonicRESTController {
         for (org.airsonic.player.domain.Artist similarArtist : similarArtists) {
             result.getSimilarArtist().add(createJaxbArtist(new ArtistID3(), similarArtist, username));
         }
-        ArtistBio artistBio = lastFmService.getArtistBio(artist, getUserLocale(request));
+        ArtistBio artistBio = lastFmService.getArtistBio(artist, localeResolver.resolveLocale(request));
         if (artistBio != null) {
             result.setBiography(artistBio.getBiography());
             result.setMusicBrainzId(artistBio.getMusicBrainzId());
@@ -1225,7 +1228,7 @@ public class SubsonicRESTController {
             if (minutesAgo < 60) {
                 NowPlayingEntry entry = new NowPlayingEntry();
                 entry.setUsername(username);
-                entry.setPlayerId(Integer.parseInt(player.getId()));
+                entry.setPlayerId(player.getId());
                 entry.setPlayerName(player.getName());
                 entry.setMinutesAgo((int) minutesAgo);
                 result.getEntry().add(createJaxbChild(entry, player, mediaFile, username));
@@ -1274,7 +1277,7 @@ public class SubsonicRESTController {
             child.setSuffix(suffix);
             child.setContentType(StringUtil.getMimeType(suffix));
             child.setIsVideo(mediaFile.isVideo());
-            child.setPath(getRelativePath(mediaFile));
+            child.setPath(getRelativePath(mediaFile, settingsService));
 
             org.airsonic.player.domain.Bookmark bookmark = bookmarkCache.get(new BookmarkKey(username, mediaFile.getId()));
             if (bookmark != null) {
@@ -1329,7 +1332,7 @@ public class SubsonicRESTController {
         return null;
     }
 
-    private String getRelativePath(MediaFile musicFile) {
+    public static String getRelativePath(MediaFile musicFile, SettingsService settingsService) {
 
         String filePath = musicFile.getPath();
 
@@ -2399,11 +2402,7 @@ public class SubsonicRESTController {
         }
 
         // Return the player ID.
-        return !players.isEmpty() ? players.get(0).getId() : null;
-    }
-
-    private Locale getUserLocale(HttpServletRequest request) {
-        return settingsService.getUserSettings(securityService.getCurrentUsername(request)).getLocale();
+        return !players.isEmpty() ? String.valueOf(players.get(0).getId()) : null;
     }
 
     public enum ErrorCode {

@@ -3,17 +3,14 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <script type="text/javascript" src="<c:url value="/script/moment-2.18.1.min.js"/>"></script>
-    <link type="text/css" rel="stylesheet" href="<c:url value="/script/webfx/luna.css"/>">
-    <script type="text/javascript" src="<c:url value="/script/scripts-2.0.js"/>"></script>
+    <script type="text/javascript" src="<c:url value="/script/utils.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/interface/nowPlayingService.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/interface/playQueueService.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/interface/playlistService.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/engine.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/util.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/script/mediaelement/mediaelement-and-player.min.js"/>"></script>
-    <%@ include file="playQueueCast.jsp" %>
-    <link type="text/css" rel="stylesheet" href="<c:url value="/script/webfx/luna.css"/>">
+    <script type="text/javascript" src="<c:url value="/script/playQueueCast.js"/>"></script>
     <style type="text/css">
         .ui-slider .ui-slider-handle {
             width: 11px;
@@ -167,15 +164,17 @@
     }
 
     /**
-     * Start playing from the current playlist
+     * Start/resume playing from the current playlist
      */
     function onStart() {
         if (CastPlayer.castSession) {
             CastPlayer.playCast();
         } else if ($('#audioPlayer').get(0)) {
-            var audioPlayer = $('#audioPlayer');
-            if(audioPlayer.paused) {
-                skip(0, audioPlayer.currentTime);
+            if ($('#audioPlayer').get(0).src) {
+                $('#audioPlayer').get(0).play();  // Resume playing if the player was paused
+            }
+            else {
+                skip(0);  // Start the first track if the player was not yet loaded
             }
         } else {
             playQueueService.start(playQueueCallback);
@@ -205,8 +204,9 @@
             var playing = CastPlayer.mediaSession && CastPlayer.mediaSession.playerState == chrome.cast.media.PlayerState.PLAYING;
             if (playing) onStop();
             else onStart();
-        } else if ($('#audioPlayer')) {
-            if (!$('#audioPlayer').get(0).paused) onStop();
+        } else if ($('#audioPlayer').get(0)) {
+            var playing = $("#audioPlayer").get(0).paused != null && !$("#audioPlayer").get(0).paused;
+            if (playing) onStop();
             else onStart();
         } else {
             playQueueService.toggleStartStop(playQueueCallback);
@@ -237,11 +237,11 @@
             if (volume < 0) volume = 0;
             CastPlayer.setCastVolume(volume / 100, false);
             $("#castVolume").slider("option", "value", volume); // Need to update UI
-        } else if ($('#audioPlayer')) {
-            var volume = parseInt($('#audioPlayer').get(0).volume) + gain;
+        } else if ($('#audioPlayer').get(0)) {
+            var volume = parseFloat($('#audioPlayer').get(0).volume)*100 + gain;
             if (volume > 100) volume = 100;
             if (volume < 0) volume = 0;
-            $('#audioPlayer').get(0).volume = volume;
+            $('#audioPlayer').get(0).volume = volume / 100;
         } else {
             var volume = parseInt($("#jukeboxVolume").slider("option", "value")) + gain;
             if (volume > 100) volume = 100;
@@ -360,7 +360,7 @@
         playQueueService.sortByAlbum(playQueueCallback);
     }
     function onSavePlayQueue() {
-        var positionMillis = $('#audioPlayer') ? Math.round(1000.0 * $('#audioPlayer').get(0).currentTime) : 0;
+        var positionMillis = $('#audioPlayer').get(0) ? Math.round(1000.0 * $('#audioPlayer').get(0).currentTime) : 0;
         playQueueService.savePlayQueue(getCurrentSongIndex(), positionMillis);
         $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.saveplayqueue"/>");
     }
@@ -427,7 +427,7 @@
         }
 
         if (songs.length == 0) {
-            $("#songCountAndDuration").html("");
+            $("#songCountAndDuration").text("");
             $("#empty").show();
         } else {
             $("#songCountAndDuration").html(songs.length + " <fmt:message key="playlist2.songs"/> &ndash; " + playQueue.durationAsString);
@@ -445,13 +445,13 @@
             var id = i + 1;
             dwr.util.cloneNode("pattern", { idSuffix:id });
             if ($("#trackNumber" + id)) {
-                $("#trackNumber" + id).html(song.trackNumber);
+                $("#trackNumber" + id).text(song.trackNumber);
             }
             if (song.starred) {
                 $("#starSong" + id).attr("src", "<spring:theme code='ratingOnImage'/>");
             } else {
                 $("#starSong" + id).attr("src", "<spring:theme code='ratingOffImage'/>");
-            } 
+            }
             if ($("#currentImage" + id) && song.streamUrl == currentStreamUrl) {
                 $("#currentImage" + id).show();
                 if (isJavaJukeboxPresent()) {
@@ -459,40 +459,40 @@
                 }
             }
             if ($("#title" + id)) {
-                $("#title" + id).html(song.title);
+                $("#title" + id).text(song.title);
                 $("#title" + id).attr("title", song.title);
             }
             if ($("#titleUrl" + id)) {
-                $("#titleUrl" + id).html(song.title);
+                $("#titleUrl" + id).text(song.title);
                 $("#titleUrl" + id).attr("title", song.title);
                 $("#titleUrl" + id).click(function () {onSkip(this.id.substring(8) - 1)});
             }
             if ($("#album" + id)) {
-                $("#album" + id).html(song.album);
+                $("#album" + id).text(song.album);
                 $("#album" + id).attr("title", song.album);
                 $("#albumUrl" + id).attr("href", song.albumUrl);
             }
             if ($("#artist" + id)) {
-                $("#artist" + id).html(song.artist);
+                $("#artist" + id).text(song.artist);
                 $("#artist" + id).attr("title", song.artist);
             }
             if ($("#genre" + id)) {
-                $("#genre" + id).html(song.genre);
+                $("#genre" + id).text(song.genre);
             }
             if ($("#year" + id)) {
-                $("#year" + id).html(song.year);
+                $("#year" + id).text(song.year);
             }
             if ($("#bitRate" + id)) {
-                $("#bitRate" + id).html(song.bitRate);
+                $("#bitRate" + id).text(song.bitRate);
             }
             if ($("#duration" + id)) {
-                $("#duration" + id).html(song.durationAsString);
+                $("#duration" + id).text(song.durationAsString);
             }
             if ($("#format" + id)) {
-                $("#format" + id).html(song.format);
+                $("#format" + id).text(song.format);
             }
             if ($("#fileSize" + id)) {
-                $("#fileSize" + id).html(song.fileSize);
+                $("#fileSize" + id).text(song.fileSize);
             }
 
             $("#pattern" + id).addClass((i % 2 == 0) ? "bgcolor1" : "bgcolor2");
@@ -542,10 +542,13 @@
         if (CastPlayer.castSession) {
             CastPlayer.loadCastMedia(song, position);
         } else {
-            $('#audioPlayer').get(0).src = song.streamUrl;
-            $('#audioPlayer').get(0).load();
+            if ($('#audioPlayer').get(0).src != song.streamUrl) {
+                $('#audioPlayer').get(0).src = song.streamUrl;
+                $('#audioPlayer').get(0).load();
+                console.log(song.streamUrl);
+            }
+            $('#audioPlayer').get(0).currentTime = position ? position : 0;
             $('#audioPlayer').get(0).play();
-            console.log(song.streamUrl);
         }
 
         updateWindowTitle(song);
@@ -686,7 +689,7 @@
     </c:when>
     <c:otherwise>
         <div class="bgcolor2" style="position:fixed; bottom:0; width:100%;padding-top:10px;">
-            <table style="white-space:nowrap;">
+            <table style="white-space:nowrap; margin-bottom:0;">
                 <tr style="white-space:nowrap;">
                     <c:if test="${model.user.settingsRole and fn:length(model.players) gt 1}">
                         <td style="padding-right: 5px"><select name="player" onchange="location='playQueue.view?player=' + options[selectedIndex].value;">
@@ -698,7 +701,7 @@
                     <c:if test="${model.player.web}">
                         <td>
                             <div id="player" style="width:340px; height:40px;padding-right:10px">
-                                <audio id="audioPlayer" class="mejs__player" data-mejsoptions='{"alwaysShowControls": "true"}' width="340px" height"40px"/>
+                                <audio id="audioPlayer" class="mejs__player" data-mejsoptions='{"alwaysShowControls": true, "enableKeyboard": false}' width="340px" height"40px" tabindex="-1" />
                             </div>
                             <div id="castPlayer" style="display: none">
                                 <div style="float:left">
@@ -812,7 +815,7 @@
             <td class="fit">
                 <img id="removeSong" onclick="onRemove(this.id.substring(10) - 1)" src="<spring:theme code="removeImage"/>"
                      style="cursor:pointer" alt="<fmt:message key="playlist.remove"/>" title="<fmt:message key="playlist.remove"/>"></td>
-            <td class="fit"><input type="checkbox" class="checkbox" id="songIndex"></td>
+            <td class="fit"><input type="checkbox" id="songIndex"></td>
 
             <c:if test="${model.visibility.trackNumberVisible}">
                 <td class="fit rightalign"><span class="detail" id="trackNumber">1</span></td>

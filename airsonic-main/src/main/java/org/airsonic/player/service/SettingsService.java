@@ -83,6 +83,7 @@ public class SettingsService {
     private static final String KEY_PODCAST_EPISODE_DOWNLOAD_COUNT = "PodcastEpisodeDownloadCount";
     private static final String KEY_DOWNLOAD_BITRATE_LIMIT = "DownloadBitrateLimit";
     private static final String KEY_UPLOAD_BITRATE_LIMIT = "UploadBitrateLimit";
+    private static final String KEY_ENABLE_SEEK = "EnableSeek1";
     private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand4";
     private static final String KEY_HLS_COMMAND = "HlsCommand3";
     private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
@@ -106,6 +107,7 @@ public class SettingsService {
     private static final String KEY_SONOS_SERVICE_NAME = "SonosServiceName";
     private static final String KEY_SONOS_SERVICE_ID = "SonosServiceId";
     private static final String KEY_JWT_KEY = "JWTKey";
+    private static final String KEY_REMEMBER_ME_KEY = "RememberMeKey";
 
     private static final String KEY_SMTP_SERVER = "SmtpServer";
     private static final String KEY_SMTP_ENCRYPTION = "SmtpEncryption";
@@ -116,6 +118,10 @@ public class SettingsService {
     private static final String KEY_EXPORT_PLAYLIST_FORMAT = "PlaylistExportFormat";
     private static final String KEY_IGNORE_SYMLINKS = "IgnoreSymLinks";
     private static final String KEY_EXCLUDE_PATTERN_STRING = "ExcludePattern";
+
+    private static final String KEY_CAPTCHA_ENABLED = "CaptchaEnabled";
+    private static final String KEY_RECAPTCHA_SITE_KEY = "ReCaptchaSiteKey";
+    private static final String KEY_RECAPTCHA_SECRET_KEY = "ReCaptchaSecretKey";
 
     // Database Settings
     private static final String KEY_DATABASE_CONFIG_TYPE = "DatabaseConfigType";
@@ -161,6 +167,7 @@ public class SettingsService {
     private static final int DEFAULT_PODCAST_EPISODE_DOWNLOAD_COUNT = 1;
     private static final long DEFAULT_DOWNLOAD_BITRATE_LIMIT = 0;
     private static final long DEFAULT_UPLOAD_BITRATE_LIMIT = 0;
+    private static final boolean DEFAULT_ENABLE_SEEK = true;
     private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
     private static final String DEFAULT_HLS_COMMAND = "ffmpeg -ss %o -t %d -i %s -async 1 -b:v %bk -s %wx%h -ar 44100 -ac 2 -v 0 -f mpegts -c:v libx264 -preset superfast -c:a libmp3lame -threads 0 -";
     private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -";
@@ -192,6 +199,10 @@ public class SettingsService {
     private static final String DEFAULT_SMTP_USER = null;
     private static final String DEFAULT_SMTP_PASSWORD = null;
     private static final String DEFAULT_SMTP_FROM = "airsonic@airsonic.org";
+
+    private static final boolean DEFAULT_CAPTCHA_ENABLED = false;
+    private static final String DEFAULT_RECAPTCHA_SITE_KEY = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
+    private static final String DEFAULT_RECAPTCHA_SECRET_KEY = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe";
 
     private static final DataSourceConfigType DEFAULT_DATABASE_CONFIG_TYPE = DataSourceConfigType.LEGACY;
     private static final String DEFAULT_DATABASE_CONFIG_EMBED_DRIVER = null;
@@ -596,7 +607,7 @@ public class SettingsService {
      * @param limit The download bitrate limit in Kbit/s. Zero if unlimited.
      */
     public void setDownloadBitrateLimit(long limit) {
-        setProperty(KEY_DOWNLOAD_BITRATE_LIMIT, "" + limit);
+        setProperty(KEY_DOWNLOAD_BITRATE_LIMIT, String.valueOf(limit));
     }
 
     /**
@@ -611,6 +622,14 @@ public class SettingsService {
      */
     public void setUploadBitrateLimit(long limit) {
         setLong(KEY_UPLOAD_BITRATE_LIMIT, limit);
+    }
+
+    public boolean isEnableSeek() {
+        return getBoolean(KEY_ENABLE_SEEK, DEFAULT_ENABLE_SEEK);
+    }
+
+    public void setEnableSeek(boolean enableSeek) {
+        setBoolean(KEY_ENABLE_SEEK, enableSeek);
     }
 
     public String getDownsamplingCommand() {
@@ -774,6 +793,27 @@ public class SettingsService {
 
     void setMediaLibraryStatistics(MediaLibraryStatistics statistics) {
         setString(KEY_MEDIA_LIBRARY_STATISTICS, statistics.format());
+    }
+
+    /**
+     * Returns whether we are running in Development mode.
+     *
+     * @return true if we are in Development mode.
+     */
+    public boolean isDevelopmentMode() {
+        return System.getProperty("airsonic.development") != null;
+    }
+
+    /**
+     * Returns the custom 'remember me' key used for generating authentication tokens.
+     *
+     * @return The 'remember me' key.
+     */
+    public String getRememberMeKey() {
+        String key = null;
+        if (StringUtils.isBlank(key)) key = getString(KEY_REMEMBER_ME_KEY, null);
+        if (StringUtils.isBlank(key)) key = System.getProperty("airsonic.rememberMeKey");
+        return key;
     }
 
     /**
@@ -1309,6 +1349,30 @@ public class SettingsService {
 
     public void setSmtpFrom(String smtpFrom) {
         setString(KEY_SMTP_FROM, smtpFrom);
+    }
+
+    public boolean isCaptchaEnabled() {
+        return getBoolean(KEY_CAPTCHA_ENABLED, DEFAULT_CAPTCHA_ENABLED);
+    }
+
+    public void setCaptchaEnabled(boolean captchaEnabled) {
+        setBoolean(KEY_CAPTCHA_ENABLED, captchaEnabled);
+    }
+
+    public String getRecaptchaSiteKey() {
+        return getProperty(KEY_RECAPTCHA_SITE_KEY, DEFAULT_RECAPTCHA_SITE_KEY);
+    }
+
+    public void setRecaptchaSiteKey(String recaptchaSiteKey) {
+        setString(KEY_RECAPTCHA_SITE_KEY, recaptchaSiteKey);
+    }
+
+    public String getRecaptchaSecretKey() {
+        return getProperty(KEY_RECAPTCHA_SECRET_KEY, DEFAULT_RECAPTCHA_SECRET_KEY);
+    }
+
+    public void setRecaptchaSecretKey(String recaptchaSecretKey) {
+        setString(KEY_RECAPTCHA_SECRET_KEY, recaptchaSecretKey);
     }
 
     public DataSourceConfigType getDatabaseConfigType() {

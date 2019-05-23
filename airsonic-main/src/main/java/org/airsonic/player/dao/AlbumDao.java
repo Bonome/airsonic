@@ -40,7 +40,8 @@ import java.util.*;
 @Repository
 public class AlbumDao extends AbstractDao {
     private static final String INSERT_COLUMNS = "path, name, artist, song_count, duration_seconds, cover_art_path, " +
-                                          "year, genre, play_count, last_played, comment, created, last_scanned, present, folder_id";
+                                          "year, genre, play_count, last_played, comment, created, last_scanned, present, " +
+                                          "folder_id, mb_release_id";
 
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
 
@@ -97,10 +98,9 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("artist", artist);
-            put("folders", MusicFolder.toIdList(musicFolders));
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("artist", artist);
+        args.put("folders", MusicFolder.toIdList(musicFolders));
         return namedQuery("select " + QUERY_COLUMNS
                           + " from album where artist = :artist and present and folder_id in (:folders) " +
                           "order by name",
@@ -127,19 +127,20 @@ public class AlbumDao extends AbstractDao {
                      "created=?," +
                      "last_scanned=?," +
                      "present=?, " +
-                     "folder_id=? " +
+                     "folder_id=?, " +
+                     "mb_release_id=? " +
                      "where artist=? and name=?";
 
         int n = update(sql, album.getPath(), album.getSongCount(), album.getDurationSeconds(), album.getCoverArtPath(), album.getYear(),
                        album.getGenre(), album.getPlayCount(), album.getLastPlayed(), album.getComment(), album.getCreated(),
-                       album.getLastScanned(), album.isPresent(), album.getFolderId(), album.getArtist(), album.getName());
+                       album.getLastScanned(), album.isPresent(), album.getFolderId(), album.getMusicBrainzReleaseId(), album.getArtist(), album.getName());
 
         if (n == 0) {
 
             update("insert into album (" + INSERT_COLUMNS + ") values (" + questionMarks(INSERT_COLUMNS) + ")", album.getPath(),
                    album.getName(), album.getArtist(), album.getSongCount(), album.getDurationSeconds(),
                    album.getCoverArtPath(), album.getYear(), album.getGenre(), album.getPlayCount(), album.getLastPlayed(),
-                   album.getComment(), album.getCreated(), album.getLastScanned(), album.isPresent(), album.getFolderId());
+                   album.getComment(), album.getCreated(), album.getLastScanned(), album.isPresent(), album.getFolderId(), album.getMusicBrainzReleaseId());
         }
 
         int id = queryForInt("select id from album where artist=? and name=?", null, album.getArtist(), album.getName());
@@ -174,11 +175,10 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
         String orderBy;
         if (ignoreCase) {
             orderBy = byArtist ? "LOWER(artist),  LOWER(name)" : "LOWER(name)";
@@ -219,11 +219,10 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
         return namedQuery("select " + QUERY_COLUMNS
                           + " from album where play_count > 0 and present and folder_id in (:folders) " +
                           "order by play_count desc limit :count offset :offset", rowMapper, args);
@@ -241,11 +240,10 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
         return namedQuery("select " + QUERY_COLUMNS
                           + " from album where last_played is not null and present and folder_id in (:folders) " +
                           "order by last_played desc limit :count offset :offset", rowMapper, args);
@@ -263,11 +261,10 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
         return namedQuery("select " + QUERY_COLUMNS + " from album where present and folder_id in (:folders) " +
                           "order by created desc limit :count offset :offset", rowMapper, args);
     }
@@ -285,12 +282,11 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-            put("username", username);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
+        args.put("username", username);
         return namedQuery("select " + prefix(QUERY_COLUMNS, "album") + " from starred_album, album where album.id = starred_album.album_id and " +
                           "album.present and album.folder_id in (:folders) and starred_album.username = :username " +
                           "order by starred_album.created desc limit :count offset :offset",
@@ -310,12 +306,11 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-            put("genre", genre);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
+        args.put("genre", genre);
         return namedQuery("select " + QUERY_COLUMNS + " from album where present and folder_id in (:folders) " +
                           "and genre = :genre limit :count offset :offset", rowMapper, args);
     }
@@ -335,13 +330,12 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, Object> args = new HashMap<String, Object>() {{
-            put("folders", MusicFolder.toIdList(musicFolders));
-            put("count", count);
-            put("offset", offset);
-            put("fromYear", fromYear);
-            put("toYear", toYear);
-        }};
+        Map<String, Object> args = new HashMap<>();
+        args.put("folders", MusicFolder.toIdList(musicFolders));
+        args.put("count", count);
+        args.put("offset", offset);
+        args.put("fromYear", fromYear);
+        args.put("toYear", toYear);
         if (fromYear <= toYear) {
             return namedQuery("select " + QUERY_COLUMNS + " from album where present and folder_id in (:folders) " +
                               "and year between :fromYear and :toYear order by year limit :count offset :offset",
@@ -404,7 +398,8 @@ public class AlbumDao extends AbstractDao {
                     rs.getTimestamp(13),
                     rs.getTimestamp(14),
                     rs.getBoolean(15),
-                    rs.getInt(16));
+                    rs.getInt(16),
+                    rs.getString(17));
         }
     }
 }

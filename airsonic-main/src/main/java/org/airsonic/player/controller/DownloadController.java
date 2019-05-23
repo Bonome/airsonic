@@ -99,7 +99,7 @@ public class DownloadController implements LastModified {
             MediaFile mediaFile = getMediaFile(request);
 
             Integer playlistId = ServletRequestUtils.getIntParameter(request, "playlist");
-            String playerId = request.getParameter("player");
+            Integer playerId = ServletRequestUtils.getIntParameter(request, "player");
             int[] indexes = request.getParameter("i") == null ? null : ServletRequestUtils.getIntParameters(request, "i");
 
             if (mediaFile != null) {
@@ -207,6 +207,8 @@ public class DownloadController implements LastModified {
      * @param zipFileName  The name of the resulting zip file.   @throws IOException If an I/O error occurs.
      */
     private void downloadFiles(HttpServletResponse response, TransferStatus status, List<MediaFile> files, int[] indexes, File coverArtFile, HttpRange range, String zipFileName) throws IOException {
+        boolean cover_embedded = false;
+
         if (indexes != null && indexes.length == 1) {
             downloadFile(response, status, files.get(indexes[0]).getFile(), range);
             return;
@@ -232,8 +234,13 @@ public class DownloadController implements LastModified {
 
         for (MediaFile mediaFile : filesToDownload) {
             zip(out, mediaFile.getParentFile(), mediaFile.getFile(), status, range);
+            if (coverArtFile != null && coverArtFile.exists()) {
+                if (mediaFile.getFile().getCanonicalPath() == coverArtFile.getCanonicalPath()) {
+                    cover_embedded = true;
+                }
+            }
         }
-        if (coverArtFile != null && coverArtFile.exists()) {
+        if (coverArtFile != null && coverArtFile.exists() && cover_embedded == false) {
             zip(out, coverArtFile.getParentFile(), coverArtFile, status, range);
         }
 
@@ -361,9 +368,8 @@ public class DownloadController implements LastModified {
      */
     private long computeCrc(File file) throws IOException {
         CRC32 crc = new CRC32();
-        InputStream in = new FileInputStream(file);
 
-        try {
+        try (InputStream in = new FileInputStream(file)) {
 
             byte[] buf = new byte[8192];
             int n = in.read(buf);
@@ -372,8 +378,6 @@ public class DownloadController implements LastModified {
                 n = in.read(buf);
             }
 
-        } finally {
-            in.close();
         }
 
         return crc.getValue();
