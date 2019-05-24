@@ -255,11 +255,16 @@ public class StreamController  {
             // we catch Tomcat/Jetty "connection aborted by client" exceptions
             // and display a short error message.
             boolean shouldCatch = false;
-            shouldCatch |= Util.isInstanceOfClassName(e, "org.apache.catalina.connector.ClientAbortException");
+            // Condition added to not closeQuietly the stream on ClientAbortException
+            // fix : player stop playing the playlist randomly
+            boolean shouldCatchButNoClose = false;
+            shouldCatchButNoClose |= Util.isInstanceOfClassName(e, "org.apache.catalina.connector.ClientAbortException");
             shouldCatch |= Util.isInstanceOfClassName(e, "org.eclipse.jetty.io.EofException");
-            if (shouldCatch) {
-                LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(), Util.getAnonymizedURLForRequest(request), e.getCause().toString());
+            if (shouldCatchButNoClose) {
                 close = false;
+            }
+            if (shouldCatch || shouldCatchButNoClose) {
+                LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(), Util.getAnonymizedURLForRequest(request), e.getCause().toString());
                 return;
             }
 
