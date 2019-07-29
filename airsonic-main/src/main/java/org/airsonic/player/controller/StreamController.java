@@ -250,7 +250,8 @@ public class StreamController  {
                 }
             }
         } catch (IOException e) {
-
+            String exceptionClassName = e.getClass().getName();
+            LOG.info("Exception: {}", exceptionClassName);
             // This happens often and outside of the control of the server, so
             // we catch Tomcat/Jetty "connection aborted by client" exceptions
             // and display a short error message.
@@ -267,7 +268,7 @@ public class StreamController  {
                 LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(), Util.getAnonymizedURLForRequest(request), e.getCause().toString());
                 return;
             }
-
+            LOG.info("Rethrow");
             // Rethrow the exception in all other cases
             throw e;
 
